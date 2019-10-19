@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebSocket demo</title>
+        <style type="text/css">
+            body {
+                font-family: "Courier New", sans-serif;
+                text-align: center;
+            }
+            .buttons {
+                font-size: 4em;
+                display: flex;
+                justify-content: center;
+            }
+            .button, .value {
+                line-height: 1;
+                padding: 2rem;
+                margin: 2rem;
+                border: medium solid;
+                min-height: 1em;
+                min-width: 1em;
+            }
+            .button {
+                cursor: pointer;
+                user-select: none;
+            }
+            .minus {
+                color: red;
+            }
+            .plus {
+                color: green;
+            }
+            .value {
+                min-width: 2em;
+            }
+            .state {
+                font-size: 2em;
+            }
+        </style>
+    </head>
+    <body  onkeydown="BindEnter(event)">
+
+        <div class="buttons">
+       信息<textarea rows="10" cols="100" id="recivemsg"  readonly="readonly" ></textarea>
+       公告 <textarea rows="3" cols="100" id="pub"></textarea>
+        </div>
+        <br>
+    user:<input id="user_name" value=""><button onclick=login()>login</button>
+    sendto:<input id="recive_name" value="">
+    msg<input id="recive_msg" value="">
+    <button id="send_msg" onclick=sendmsg()>send</button>
+
+    </body>
+        <script>
+            var minus = document.querySelector('.minus'),
+                plus = document.querySelector('.plus'),
+                value = document.querySelector('.value'),
+                users = document.querySelector('.users'),
+                websocket = new WebSocket("ws://34.80.83.148:6789/");
+               // websocket = new WebSocket("ws://127.0.0.1:8888/");
+            function login()
+            {
+                var username = document.getElementById("user_name")
+                websocket.send(JSON.stringify({user_name: username.value}));
+                // username.value = ""
+            }
+            function sendmsg()
+            {
+                var username = document.getElementById("user_name")
+                var recive_name = document.getElementById("recive_name")
+                var msg = document.getElementById("recive_msg")
+                var recivemsg = document.getElementById("recivemsg");
+                recivemsg.value = recivemsg.value +"\n"+ username.value+' > '+recive_name.value+':'+msg.value;
+                websocket.send(JSON.stringify({send_user: username.value ,recive_user: recive_name.value, msg: msg.value}));
+                msg.value = ""
+            }
+            websocket.onopen = function (event) {
+                //alert("ok");
+            }
+            websocket.onclose = function(event) {
+                //alert("logout")
+            }
+            websocket.onmessage = function (event) {
+                data = JSON.parse(event.data);
+                switch (data.type) {
+                    case 'state':
+                        var pub = document.getElementById("pub");
+                        pub.value = data.pub
+                        break;
+                    case 'users':
+                        if (data.login == "ok"){
+                            alert("ok");
+                            break;
+                        }
+                        else
+                        {
+                            alert("login fail")
+                        }
+                    case 'msg':
+                        var recivemsg = document.getElementById("recivemsg");
+                        recivemsg.value = recivemsg.value +"\n"+ data.msg;
+                        websocket.send(JSON.stringify({msg_id: data.msg_id ,is_read: 1}));
+                        break;
+                    default:
+                        console.error(
+                            "unsupported event", data);
+                }
+            };
+            function BindEnter(obj) {
+                var button = document.getElementById('send_msg');
+
+                 if(obj.keyCode == 13)
+
+                {  button.click();
+
+                  obj.returnValue = false;
+
+                 }
+
+                }
+
+        </script>
+
+</html>
